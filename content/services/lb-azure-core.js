@@ -2,6 +2,38 @@
  * LanguageBridge Azure Core
  */
 
+// ============================================================================
+// SHARED LANGUAGE TABLE
+// Single source of truth for language codes, locales, voices, and display names.
+// Add a new language here once and it propagates to TTS, STT, and UI.
+// ============================================================================
+window.LB_LANGUAGES = {
+  //  code   locale    voice                        display name
+  'ur':  { locale: 'ur-PK', voice: 'ur-PK-UzmaNeural',      name: 'Urdu' },
+  'ps':  { locale: 'ps-AF', voice: 'ps-AF-LatifaNeural',     name: 'Pashto' },
+  'fa':  { locale: 'fa-IR', voice: 'fa-IR-DilaraNeural',     name: 'Persian' },
+  'prs': { locale: 'fa-IR', voice: 'fa-IR-DilaraNeural',     name: 'Dari' },
+  'ar':  { locale: 'ar-SA', voice: 'ar-SA-ZariyahNeural',    name: 'Arabic' },
+  'so':  { locale: 'so-SO', voice: 'so-SO-UbaxNeural',       name: 'Somali' },
+  'uk':  { locale: 'uk-UA', voice: 'uk-UA-PolinaNeural',     name: 'Ukrainian' },
+  'uz':  { locale: 'uz-UZ', voice: 'uz-UZ-MadinaNeural',     name: 'Uzbek' },
+  'en':  { locale: 'en-US', voice: 'en-US-JennyNeural',      name: 'English' },
+  'es':  { locale: 'es-US', voice: 'es-US-PalomaNeural',     name: 'Spanish' },
+  'pt':  { locale: 'pt-BR', voice: 'pt-BR-FranciscaNeural',  name: 'Portuguese' },
+  'fr':  { locale: 'fr-FR', voice: 'fr-FR-DeniseNeural',     name: 'French' },
+  'zh':  { locale: 'zh-CN', voice: 'zh-CN-XiaoxiaoNeural',   name: 'Chinese' },
+  'mww': { locale: null,    voice: null,                      name: 'Hmong' }, // translation-only
+};
+
+// ============================================================================
+// SHARED ESCAPE UTILITY
+// ============================================================================
+window.escapeHtml = function(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+};
+
 class LanguageBridgeAzureCore {
   constructor() {
     this.config = {

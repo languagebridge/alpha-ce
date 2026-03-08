@@ -665,12 +665,6 @@ class FloatingTranslator {
       });
     }
 
-    escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
     clearHistory() {
       // Ask for confirmation before clearing
       if (!confirm('Clear all conversation history? This cannot be undone.')) {
@@ -689,22 +683,7 @@ class FloatingTranslator {
     }
   
     getLanguageName(code) {
-      const names = {
-        'en': 'English',
-        'prs': 'Dari',
-        'fa': 'Persian',
-        'ps': 'Pashto',
-        'ar': 'Arabic',
-        'so': 'Somali',
-        'uk': 'Ukrainian',
-        'es': 'Spanish',
-        'ur': 'Urdu',
-        'fr': 'French',
-        'pt': 'Portuguese',
-        'zh': 'Chinese',
-        'mww': 'Hmong'
-      };
-      return names[code] || code;
+      return (window.LB_LANGUAGES[code] || {}).name || code;
     }
   
     toggleSettings() {

@@ -11,11 +11,7 @@ function isExtensionContextValid() {
   }
 }
 
-const escapeHtml = (text) => {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-};
+// escapeHtml available via window.escapeHtml (defined in lb-azure-core.js)
 
 class LanguageBridgeToolbar {
     constructor() {

@@ -2,12 +2,7 @@
  * LanguageBridge STT Service
  */
 
-// Locale mapping for speech recognition
-const LOCALE_MAP = {
-  'ur': 'ur-PK', 'uz': 'uz-UZ', 'uk': 'uk-UA', 'ps': 'ps-AF',
-  'fa': 'fa-IR', 'prs': 'fa-IR', 'ar': 'ar-SA', 'en': 'en-US',
-  'es': 'es-US', 'pt': 'pt-BR', 'fr': 'fr-FR', 'zh': 'zh-CN'
-};
+// Locale lookup — derived from the shared LB_LANGUAGES table in lb-azure-core.js
 
 class LanguageBridgeSTTService {
   constructor() {
@@ -24,7 +19,7 @@ class LanguageBridgeSTTService {
       throw new Error('Speech recognition rate limit exceeded. Please wait a moment and try again.');
     }
 
-    const locale = LOCALE_MAP[language] || 'en-US';
+    const locale = (window.LB_LANGUAGES[language] || {}).locale || 'en-US';
 
     // Use Azure STT via Netlify proxy (higher quality, supports all languages)
     logger.log('🎤 Starting Azure STT via Netlify proxy');

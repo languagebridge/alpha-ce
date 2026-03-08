@@ -176,13 +176,7 @@ class ActivationModal {
       schoolBtn.disabled = true;
       schoolBtn.textContent = 'Checking...';
       // For now, show message to contact admin
-      // SECURITY: Escape user input (email domain) to prevent XSS
-      const escapeHtml = (str) => {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-      };
-      const emailDomain = escapeHtml(email.split('@')[1]);
+      const emailDomain = escapeHtml(email.split('@')[1]); // escapeHtml from lb-azure-core.js
       this.showInfo(`
         <h3>School Email Verification</h3>
         <p>To check if your school (${emailDomain}) has LanguageBridge:</p>

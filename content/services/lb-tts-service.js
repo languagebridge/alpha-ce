@@ -2,15 +2,7 @@
  * LanguageBridge TTS Service
  */
 
-// Voice mapping for Text-to-Speech
-const VOICE_MAP = {
-  'ur': 'ur-PK-UzmaNeural', 'uk': 'uk-UA-PolinaNeural',
-  'ps': 'ps-AF-LatifaNeural', 'fa': 'fa-IR-DilaraNeural',
-  'prs': 'fa-IR-DilaraNeural', 'ar': 'ar-SA-ZariyahNeural',
-  'so': 'so-SO-UbaxNeural', 'en': 'en-US-JennyNeural',
-  'es': 'es-US-PalomaNeural', 'pt': 'pt-BR-FranciscaNeural',
-  'fr': 'fr-FR-DeniseNeural', 'zh': 'zh-CN-XiaoxiaoNeural'
-};
+// Voice lookup — derived from the shared LB_LANGUAGES table in lb-azure-core.js
 
 class LanguageBridgeTTSService {
   constructor() {
@@ -35,7 +27,7 @@ class LanguageBridgeTTSService {
 
     try {
       // Prepare request for Azure proxy
-      const voice = VOICE_MAP[language] || 'en-US-JennyNeural';
+      const voice = (window.LB_LANGUAGES[language] || {}).voice || 'en-US-JennyNeural';
 
       logger.log(`🎤 Speaking with Azure proxy: ${voice}`);
 
