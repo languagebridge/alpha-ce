@@ -85,6 +85,7 @@ exports.handler = async (event, context) => {
       // Netlify endpoints (dynamically built based on deploy URL)
       endpoints: {
         azureProxy: `${process.env.URL || 'https://exquisite-croissant-4288dd.netlify.app'}/.netlify/functions/azure-proxy`,
+        logFlag: `${process.env.URL || 'https://exquisite-croissant-4288dd.netlify.app'}/.netlify/functions/log-flag`,
       },
 
       // Website URLs

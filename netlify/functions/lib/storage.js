@@ -9,13 +9,14 @@ const config = require('./config');
 
 // Initialize blob stores with context
 // Netlify automatically provides these in production
-let usageStore, quotaStore, statsStore, audioStore;
+let usageStore, quotaStore, statsStore, audioStore, flagStore;
 
 try {
   usageStore = getStore('usage-logs');
   quotaStore = getStore('user-quotas');
   statsStore = getStore('pilot-stats');
   audioStore = getStore('tts-audio-cache');
+  flagStore = getStore('flag-data');
 } catch (error) {
   console.warn('Netlify Blobs not configured:', error.message);
   // Stores will be undefined, handled gracefully below
@@ -381,6 +382,111 @@ async function getUserBreakdown() {
   }
 }
 
+// Flag TTL: 90 days
+const FLAG_TTL_SECONDS = 60 * 60 * 24 * 90;
+
+/**
+ * Determine flag status from count
+ */
+function getFlagStatus(count) {
+  if (count >= 10) return 'high_priority';
+  if (count >= 6)  return 'bounty';
+  if (count >= 3)  return 'elevated';
+  return 'logged';
+}
+
+/**
+ * Generate a stable key for a flagged text+language pair
+ */
+function getFlagKey(text, language) {
+  const hash = crypto.createHash('sha256')
+    .update(`${language}:${text}`)
+    .digest('hex')
+    .substring(0, 16);
+  return `${language}:${hash}`;
+}
+
+/**
+ * Log a flag for a word or phrase.
+ * Increments count if already flagged; creates new entry otherwise.
+ * Returns { flagCount, status }
+ */
+async function logFlag(text, language, tier, source) {
+  if (!flagStore) {
+    console.warn('Flag store not available, skipping flag log');
+    return { flagCount: 1, status: 'logged' };
+  }
+
+  const key = getFlagKey(text, language);
+
+  try {
+    let entry;
+    const existing = await flagStore.get(key);
+
+    if (existing) {
+      try {
+        entry = JSON.parse(existing);
+      } catch (_e) {
+        entry = null;
+      }
+    }
+
+    if (entry) {
+      entry.flagCount += 1;
+      entry.lastFlagged = new Date().toISOString();
+      entry.status = getFlagStatus(entry.flagCount);
+    } else {
+      entry = {
+        text,
+        language,
+        tier: tier || null,
+        source: source || 'unknown',
+        flagCount: 1,
+        status: 'logged',
+        firstFlagged: new Date().toISOString(),
+        lastFlagged: new Date().toISOString(),
+      };
+    }
+
+    await flagStore.set(key, JSON.stringify(entry), {
+      metadata: { ttl: FLAG_TTL_SECONDS },
+    });
+
+    console.log(`🚩 Flag logged: [${language}] "${text.substring(0, 30)}" — count=${entry.flagCount} status=${entry.status}`);
+    return { flagCount: entry.flagCount, status: entry.status };
+
+  } catch (error) {
+    console.error('Error logging flag:', error);
+    return { flagCount: 1, status: 'logged' };
+  }
+}
+
+/**
+ * Get all flagged items (for admin review)
+ */
+async function getAllFlags(limit = 200) {
+  if (!flagStore) return [];
+  try {
+    const { blobs } = await flagStore.list({ limit });
+    const results = await Promise.all(
+      blobs.map(async (blob) => {
+        try {
+          const data = await flagStore.get(blob.key);
+          return data ? JSON.parse(data) : null;
+        } catch (_e) {
+          return null;
+        }
+      })
+    );
+    return results
+      .filter(Boolean)
+      .sort((a, b) => b.flagCount - a.flagCount);
+  } catch (error) {
+    console.error('Error fetching flags:', error);
+    return [];
+  }
+}
+
 module.exports = {
   getUserId,
   getUserDailyUsage,
@@ -392,4 +498,6 @@ module.exports = {
   getUserBreakdown,
   getCachedAudio,
   setCachedAudio,
+  logFlag,
+  getAllFlags,
 };

@@ -75,3 +75,8 @@ temp/
 *.jpeg
 *.png
 plain_english_a_to_z-1.json
+
+# ============================================
+# INTERNAL DOCUMENTS (do not commit)
+# ============================================
+*.pdf

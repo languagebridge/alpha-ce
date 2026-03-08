@@ -1020,6 +1020,38 @@ class LanguageBridgeToolbar {
       translationText.textContent = translatedText;
       tab1.appendChild(translationText);
 
+      // Flag button for main translation
+      const flagRow = document.createElement('div');
+      flagRow.className = 'lb-flag-row';
+      flagRow.style.cssText = 'margin-top: 10px; text-align: right;';
+
+      const flagBtn = document.createElement('button');
+      flagBtn.className = 'lb-flag-btn';
+      flagBtn.title = 'Flag this translation as confusing or incorrect';
+      flagBtn.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.55; padding: 2px 4px; border-radius: 4px; transition: opacity 0.15s;';
+      flagBtn.textContent = '🚩 Flag';
+      flagBtn.addEventListener('mouseenter', () => { flagBtn.style.opacity = '1'; });
+      flagBtn.addEventListener('mouseleave', () => { if (!flagBtn.dataset.flagged) flagBtn.style.opacity = '0.55'; });
+      flagBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (flagBtn.dataset.flagged) return; // Already flagged this session
+        flagBtn.dataset.flagged = '1';
+        flagBtn.textContent = '⏳';
+        flagBtn.disabled = true;
+        const result = await this.sendFlag(
+          this.cachedOriginalText || this.selectedText,
+          this.userLanguage,
+          this.simplificationTier,
+          'translation'
+        );
+        flagBtn.textContent = result.flagCount >= 3 ? '🚩 Flagged ✓' : '🚩 Flagged';
+        flagBtn.style.opacity = '0.8';
+        logger.log(`🚩 Translation flagged (count=${result.flagCount}, status=${result.status})`);
+      });
+
+      flagRow.appendChild(flagBtn);
+      tab1.appendChild(flagRow);
+
       // Tab 2: Glossary (loading state) with tier picker
       const tab2 = document.createElement('div');
       tab2.className = 'lb-tooltip-tab-content';
@@ -1712,6 +1744,18 @@ class LanguageBridgeToolbar {
         pair.appendChild(englishDiv);
         pair.appendChild(arrow);
         pair.appendChild(transDiv);
+
+        // Flag button for this glossary word
+        const wordFlagBtn = document.createElement('button');
+        wordFlagBtn.className = 'lb-vocab-flag';
+        wordFlagBtn.title = 'Flag this translation as confusing or incorrect';
+        wordFlagBtn.setAttribute('data-text', word.term);
+        wordFlagBtn.setAttribute('data-lang', isEnglishMode ? 'en' : this.userLanguage);
+        wordFlagBtn.setAttribute('data-tier', tierNum.toString());
+        wordFlagBtn.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 13px; opacity: 0.45; padding: 2px 4px; margin-left: 4px; border-radius: 4px; transition: opacity 0.15s; flex-shrink: 0;';
+        wordFlagBtn.textContent = '🚩';
+        pair.appendChild(wordFlagBtn);
+
         vocabItem.appendChild(pair);
 
         // Context sentence (Tier 3 only)
@@ -1750,6 +1794,25 @@ class LanguageBridgeToolbar {
         glossaryTab.removeEventListener('click', this._glossaryClickHandler);
       }
       this._glossaryClickHandler = async (e) => {
+        // Flag button
+        const flagButton = e.target.closest('.lb-vocab-flag');
+        if (flagButton) {
+          e.stopPropagation();
+          if (flagButton.dataset.flagged) return;
+          flagButton.dataset.flagged = '1';
+          flagButton.textContent = '⏳';
+          flagButton.disabled = true;
+          const text = flagButton.getAttribute('data-text');
+          const lang = flagButton.getAttribute('data-lang');
+          const tier = parseInt(flagButton.getAttribute('data-tier'), 10) || null;
+          const result = await this.sendFlag(text, lang, tier, 'glossary');
+          flagButton.textContent = '🚩';
+          flagButton.style.opacity = '0.9';
+          flagButton.title = `Flagged (${result.flagCount} total)`;
+          logger.log(`🚩 Glossary word flagged: "${text}" (count=${result.flagCount}, status=${result.status})`);
+          return;
+        }
+
         const button = e.target.closest('.lb-vocab-audio');
         if (!button) return; // Not an audio button click
 
@@ -1804,6 +1867,30 @@ class LanguageBridgeToolbar {
           logger.warn('⚠️ Error closing Azure synthesizer:', error);
         }
         window.AzureClient.synthesizer = null;
+      }
+    }
+
+        // sendFlag — fire-and-forget flag event to Netlify log-flag function
+    async sendFlag(text, language, tier, source) {
+      const endpoint = window.CONFIG?.endpoints?.logFlag;
+      if (!endpoint) {
+        logger.warn('⚠️ logFlag endpoint not configured, skipping flag');
+        return { flagCount: 1, status: 'logged' };
+      }
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, language, tier, source }),
+        });
+        if (!response.ok) {
+          logger.warn(`⚠️ Flag endpoint returned ${response.status}`);
+          return { flagCount: 1, status: 'logged' };
+        }
+        return await response.json();
+      } catch (error) {
+        logger.warn('⚠️ Could not send flag:', error);
+        return { flagCount: 1, status: 'logged' };
       }
     }
 

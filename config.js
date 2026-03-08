@@ -30,6 +30,7 @@ window.CONFIG = {
     azureProxy: null,
     getSpeechKey: null,
     getClientConfig: null, // Will be set below
+    logFlag: null,
   },
 
   website: {
@@ -90,6 +91,7 @@ window.CONFIG = {
 
 // Set the config endpoint
 window.CONFIG.endpoints.getClientConfig = `${window.CONFIG.netlifyBaseUrl}/.netlify/functions/get-client-config`;
+window.CONFIG.endpoints.logFlag = `${window.CONFIG.netlifyBaseUrl}/.netlify/functions/log-flag`;
 
 // ============================================================================
 // CONFIGURATION LOADER FUNCTION
