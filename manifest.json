@@ -34,7 +34,6 @@
           "content/core/lb-state-manager.js",
           "content/azure-speech-sdk-bundle.js",
           "content/academic-vocabulary-enhanced.js",
-          "content/tiered-vocabulary-simplifier.js",
           "content/services/lb-azure-core.js",
           "content/services/lb-translation-service.js",
           "content/services/lb-tts-service.js",
@@ -103,8 +102,7 @@
           "content/azure-speech-sdk-bundle.js",
           "utils/logger.js",
           "config.js",
-          "privacy-policy.html",
-          "plain_english_a_to_z-1.json"
+          "privacy-policy.html"
         ],
         "matches": ["<all_urls>"]
       }

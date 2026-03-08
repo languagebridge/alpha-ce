@@ -22,7 +22,6 @@ class LanguageBridgeAzureCore {
       speechRecognition: { count: 0, resetAt: Date.now() + 60000 }
     };
 
-    this.tieredSimplifier = null;
     this.isInitialized = false;
 
     // Initialize after config is loaded
@@ -55,33 +54,6 @@ class LanguageBridgeAzureCore {
     this.isInitialized = true;
     logger.log('✓ Azure Core initialized with Netlify proxy');
     logger.log(`✓ Azure proxy endpoint: ${this.config.netlifyEndpoint || 'not set'}`);
-    logger.log('✓ TTS: Using Azure proxy (no direct SDK)');
-    logger.log('✓ Rate limiting enabled for API protection');
-
-    // Load tiered vocabulary database
-    await this.loadTieredVocabulary();
-  }
-  async loadTieredVocabulary() {
-    try {
-      logger.log('🔍 Loading tiered vocabulary database...');
-      const response = await fetch(chrome.runtime.getURL('plain_english_a_to_z-1.json'));
-      const vocabularyData = await response.json();
-      logger.log(`✓ Vocabulary JSON loaded: ${vocabularyData.length} entries`);
-
-      if (typeof TieredVocabularySimplifier !== 'undefined') {
-        logger.log('✓ TieredVocabularySimplifier class is defined');
-        this.tieredSimplifier = new TieredVocabularySimplifier(vocabularyData);
-        const stats = this.tieredSimplifier.getStats();
-        logger.log(`✓ Tiered vocabulary loaded: ${stats.totalEntries} academic terms`);
-        logger.log('✓ ESL-optimized Tier 2 simplification enabled');
-      } else {
-        logger.error('❌ TieredVocabularySimplifier is UNDEFINED - falling back to legacy');
-        this.tieredSimplifier = null;
-      }
-    } catch (error) {
-      logger.error('❌ Could not load tiered vocabulary database:', error);
-      this.tieredSimplifier = null;
-    }
   }
   checkRateLimit(service) {
     const limiter = this.rateLimiters[service];
