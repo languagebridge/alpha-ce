@@ -360,36 +360,21 @@ class LanguageBridgeGlossaryService {
     }
   }
   async fetchAllScaffoldingTiers(originalText, targetLanguage, userTier = 2) {
-    logger.log(`🔄 Fetching scaffolding tiers with LAZY LOADING (only TIER ${userTier} glossary)...`);
+    logger.log(`🔄 Fetching translation + TIER ${userTier} glossary...`);
 
     try {
-      const simplificationService = window.LanguageBridgeSimplificationService;
-
-      // Execute all API calls in parallel for performance
-      const [translation, simplified, tier1] = await Promise.all([
-        // Translation to native language
-        targetLanguage !== 'en'
-          ? this.translationService.translateText(originalText, 'en', targetLanguage)
-          : Promise.resolve(originalText),
-
-        // Tier 2 simplified (kept for backwards compatibility but not displayed)
-        simplificationService.simplifyText(originalText),
-
-        // Tier 1 simplified (kept for backwards compatibility but not displayed)
-        simplificationService.extractiveSummarize(originalText, [], 'tier1')
-      ]);
+      // Translate to native language, then build glossary from original text
+      const translation = targetLanguage !== 'en'
+        ? await this.translationService.translateText(originalText, 'en', targetLanguage)
+        : originalText;
 
       // LAZY LOAD: Only fetch glossary for user's preferred tier
-      const preferredGlossary = await this.buildGlossaryForTier(originalText, simplified, targetLanguage, userTier);
+      const preferredGlossary = await this.buildGlossaryForTier(originalText, originalText, targetLanguage, userTier);
 
-      logger.log(`✓ Scaffolding tiers loaded with LAZY glossary fetching`);
-      logger.log(`  - TIER ${userTier} glossary: ${preferredGlossary?.length || 0} terms (loaded)`);
-      logger.log(`  - Other tiers: Will load on-demand when user switches`);
+      logger.log(`✓ Translation + TIER ${userTier} glossary loaded (${preferredGlossary?.length || 0} terms)`);
 
       return {
         translation,
-        simplified,
-        tier1,
         glossary: preferredGlossary,
         preferredTier: userTier,
         glossaryTier1: userTier === 1 ? preferredGlossary : 'NOT_LOADED',
@@ -399,11 +384,8 @@ class LanguageBridgeGlossaryService {
 
     } catch (error) {
       logger.error('Error fetching scaffolding tiers:', error);
-
       return {
         translation: originalText,
-        simplified: originalText,
-        tier1: originalText,
         glossary: [],
         preferredTier: userTier,
         glossaryTier1: 'NOT_LOADED',

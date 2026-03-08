@@ -38,7 +38,6 @@
           "content/services/lb-translation-service.js",
           "content/services/lb-tts-service.js",
           "content/services/lb-stt-service.js",
-          "content/services/lb-simplification-service.js",
           "content/services/lb-glossary-service.js",
           "content/azure-client.js",
           "content/session-audio-cache.js",

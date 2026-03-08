@@ -1184,9 +1184,6 @@ class LanguageBridgeToolbar {
           glossaryTab.setAttribute('data-glossary-tier2', JSON.stringify(result.glossaryTier2));
           glossaryTab.setAttribute('data-glossary-tier3', JSON.stringify(result.glossaryTier3));
           glossaryTab.setAttribute('data-original-text', originalText);
-          // Store simplified texts for on-demand glossary generation
-          glossaryTab.setAttribute('data-tier1-text', result.tier1 || '');
-          glossaryTab.setAttribute('data-tier2-text', result.simplified || '');
 
           const savedTier = this.simplificationTier || 2;
 
@@ -1321,9 +1318,6 @@ class LanguageBridgeToolbar {
 
       logger.log(`🔄 Switching to TIER ${tier} (using cached data)...`);
       const tooltip = document.getElementById('lb-translation-tooltip');
-      const tier3Text = tab2Element.getAttribute('data-tier3-text'); // Original
-      const tier2Text = tab2Element.getAttribute('data-tier2-text'); // Simplified
-      const tier1Text = tab2Element.getAttribute('data-tier1-text'); // Extra simplified
       let glossaryTier1 = null;
       let glossaryTier2 = [];
       let glossaryTier3 = [];
@@ -1513,15 +1507,11 @@ class LanguageBridgeToolbar {
           glossaryContainer.appendChild(emptyDiv);
         }
         const originalText = glossaryTab.getAttribute('data-original-text');
-        const tier1Text = glossaryTab.getAttribute('data-tier1-text');
-        const tier2Text = glossaryTab.getAttribute('data-tier2-text');
-        // TIER 1 needs tier1Text, TIER 2/3 need tier2Text
-        const simplifiedText = tier === 1 ? tier1Text : tier2Text;
 
-        // Fetch glossary from Azure Client
+        // Fetch glossary from Azure Client — all tiers use original text
         const glossary = await window.AzureClient.buildGlossaryForTier(
           originalText,
-          simplifiedText, // ✅ Correct text for each tier!
+          originalText,
           this.userLanguage,
           tier
         );
