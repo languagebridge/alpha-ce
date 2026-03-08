@@ -1,0 +1,77 @@
+# LanguageBridge - Files to NEVER commit to GitHub
+
+# ============================================
+# SECRETS & API KEYS (CRITICAL!)
+# ============================================
+.env
+.env.local
+.env.production
+
+# Firebase service account keys
+firebase-credentials.json
+serviceAccountKey.json
+
+# ============================================
+# NODE & NPM
+# ============================================
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# ============================================
+# NETLIFY
+# ============================================
+.netlify/
+netlify-functions-build/
+
+# ============================================
+# SYSTEM FILES
+# ============================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ============================================
+# IDE / EDITOR
+# ============================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# BUILD / DIST
+# ============================================
+dist/
+build/
+*.zip
+
+# ============================================
+# LOGS
+# ============================================
+*.log
+logs/
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+tmp/
+temp/
+*.tmp
+
+# ============================================
+# AI / EDITOR CONTEXT
+# ============================================
+.claude/
+
+# ============================================
+# LARGE BINARY / DATA FILES
+# ============================================
+*.jpg
+*.jpeg
+*.png
+plain_english_a_to_z-1.json

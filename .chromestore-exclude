@@ -1,0 +1,43 @@
+# Chrome Web Store - Files to Exclude from Package
+# This file documents what should NOT be included in the Chrome Web Store ZIP
+
+# Development dependencies
+node_modules/
+package.json
+package-lock.json
+
+# Build and development scripts
+scripts/
+build-chrome-store.sh
+netlify/
+netlify.toml
+
+# Documentation (not needed in extension package)
+*.md
+README.md
+LICENSE
+docs/
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Other development files
+.env
+.env.local
+screenshot.jpg
+privacy-policy-alpha.html
+
+# Build artifacts (exclude old builds)
+*.zip
+
+# Claude development
+.claude/

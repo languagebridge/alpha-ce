@@ -1,0 +1,55 @@
+# Netlify Configuration for LanguageBridge Extension
+# This tells Netlify where your serverless functions live
+
+[build]
+  # Where your functions are stored
+  functions = "netlify/functions"
+
+  # No build command needed (we're just deploying functions)
+  command = "echo 'No build needed for serverless functions'"
+
+  # No publish directory (not hosting a website, just functions)
+  publish = "."
+
+  # Environment variables for build
+  environment = { SECRETS_SCAN_ENABLED = "false" }
+
+# Function settings
+[functions]
+  # Each function can run for up to 10 seconds (default)
+  # Increase if Azure/Firebase APIs are slow
+  node_bundler = "esbuild"
+
+# Environment variables (you'll set these in Netlify dashboard)
+# Don't put actual keys here - this file goes in version control!
+# We'll set them in Netlify's UI later
+
+# CORS headers - allow your Chrome extension to call these functions
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# Prevent caching of JavaScript files to avoid serving stale code
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/content/*.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/content/**/*.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"

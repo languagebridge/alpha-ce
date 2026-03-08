@@ -1,0 +1,9 @@
+{
+  "name": "languagebridge-netlify-functions",
+  "version": "1.0.5",
+  "description": "LanguageBridge Netlify serverless functions for Azure API proxy",
+  "dependencies": {
+    "@netlify/blobs": "^6.5.0",
+    "axios": "^1.7.9"
+  }
+}

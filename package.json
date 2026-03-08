@@ -1,0 +1,29 @@
+{
+  "name": "languagebridge-netlify-functions",
+  "version": "1.0.0",
+  "description": "Serverless functions for LanguageBridge Chrome Extension - handles Azure API proxying and Supabase analytics",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod",
+    "build:supabase": "node scripts/bundle-supabase.js",
+    "build": "npm run build:supabase"
+  },
+  "keywords": [
+    "netlify",
+    "serverless",
+    "supabase",
+    "azure",
+    "translation"
+  ],
+  "author": "LanguageBridge",
+  "license": "MIT",
+  "dependencies": {
+    "@netlify/blobs": "^10.5.0",
+    "@supabase/supabase-js": "^2.89.0",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

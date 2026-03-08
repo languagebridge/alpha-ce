@@ -1,0 +1,277 @@
+/**
+ * AZURE PROXY FUNCTION
+ *
+ * Purpose: Securely proxy requests to Azure Cognitive Services APIs
+ * This hides your Azure API keys from the Chrome extension code
+ *
+ * What it does:
+ * 1. Receives translation/speech requests from your extension
+ * 2. Validates the request
+ * 3. Forwards it to Azure using your secret API keys
+ * 4. Returns the result back to your extension
+ *
+ * Supported services:
+ * - Text Translation
+ * - Text-to-Speech (Speech Synthesis)
+ * - Speech-to-Text (Speech Recognition)
+ */
+
+const axios = require('axios');
+
+// CORS headers - allows your Chrome extension to call this function
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-School-ID, X-Classroom-ID, X-Teacher-ID, X-Deployment-Type, X-Simplification-Tier',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
+
+/**
+ * Main handler function
+ * This runs every time your extension calls the function
+ */
+exports.handler = async (event, context) => {
+  // Handle preflight CORS requests (browsers send these automatically)
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: '',
+    };
+  }
+
+  // Only allow POST requests
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Method not allowed. Use POST.' }),
+    };
+  }
+
+  try {
+    // Parse the request from your extension
+    const requestData = JSON.parse(event.body);
+    const { service, data } = requestData;
+
+    // Get Azure credentials from environment variables (set in Netlify dashboard)
+    const AZURE_TRANSLATOR_KEY = process.env.AZURE_TRANSLATOR_KEY;
+    const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY;
+    const AZURE_REGION = process.env.AZURE_REGION || 'eastus';
+
+    // Validate that we have the necessary keys
+    if (!AZURE_TRANSLATOR_KEY || !AZURE_SPEECH_KEY) {
+      console.error('Missing Azure API keys in environment variables');
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: 'Server configuration error. Please contact administrator.'
+        }),
+      };
+    }
+
+    // Route to the appropriate Azure service
+    let result;
+    switch (service) {
+      case 'translate':
+        result = await handleTranslation(data, AZURE_TRANSLATOR_KEY, AZURE_REGION);
+        break;
+
+      case 'speech-synthesis':
+        result = await handleSpeechSynthesis(data, AZURE_SPEECH_KEY, AZURE_REGION);
+        break;
+
+      case 'speech-recognition':
+        result = await handleSpeechRecognition(data, AZURE_SPEECH_KEY, AZURE_REGION);
+        break;
+
+      default:
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: `Unknown service: ${service}. Supported: translate, speech-synthesis, speech-recognition`
+          }),
+        };
+    }
+
+    // Return the result to your extension
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify(result),
+    };
+
+  } catch (error) {
+    console.error('Azure proxy error:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: 'Internal server error',
+        message: error.message
+      }),
+    };
+  }
+};
+
+/**
+ * Handle text translation requests
+ * Calls Azure Translator API
+ */
+async function handleTranslation(data, apiKey, region) {
+  const { text, targetLanguage, sourceLanguage } = data;
+
+  // Validate input
+  if (!text || !targetLanguage) {
+    throw new Error('Missing required fields: text and targetLanguage');
+  }
+
+  // Azure Translator API endpoint
+  const endpoint = `https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=${targetLanguage}`;
+
+  // Add source language if provided
+  const url = sourceLanguage
+    ? `${endpoint}&from=${sourceLanguage}`
+    : endpoint;
+
+  // Call Azure API
+  const response = await axios.post(
+    url,
+    [{ text }], // Azure expects an array of texts
+    {
+      headers: {
+        'Ocp-Apim-Subscription-Key': apiKey,
+        'Ocp-Apim-Subscription-Region': region,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  // Extract translation from Azure's response
+  const translation = response.data[0].translations[0].text;
+  const detectedLanguage = response.data[0].detectedLanguage?.language;
+
+  return {
+    translation,
+    detectedLanguage,
+    targetLanguage,
+  };
+}
+
+/**
+ * Handle text-to-speech requests
+ * Calls Azure Speech Synthesis API
+ */
+async function handleSpeechSynthesis(data, apiKey, region) {
+  const { text, language, voice, rate } = data;
+
+  // Validate input
+  if (!text || !language) {
+    throw new Error('Missing required fields: text and language');
+  }
+
+  // Build SSML (Speech Synthesis Markup Language)
+  // This tells Azure HOW to speak the text
+  const ssml = `
+    <speak version='1.0' xml:lang='${language}'>
+      <voice xml:lang='${language}' name='${voice || getDefaultVoice(language)}'>
+        <prosody rate='${rate || '1.0'}'>
+          ${escapeXml(text)}
+        </prosody>
+      </voice>
+    </speak>
+  `;
+
+  // Azure Speech API endpoint
+  const endpoint = `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`;
+
+  // Call Azure API
+  const response = await axios.post(
+    endpoint,
+    ssml,
+    {
+      headers: {
+        'Ocp-Apim-Subscription-Key': apiKey,
+        'Content-Type': 'application/ssml+xml',
+        'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
+      },
+      responseType: 'arraybuffer', // Get audio as binary data
+    }
+  );
+
+  // Convert audio to base64 for easy transmission
+  const audioBase64 = Buffer.from(response.data).toString('base64');
+
+  return {
+    audio: audioBase64,
+    format: 'mp3',
+  };
+}
+
+/**
+ * Handle speech-to-text requests
+ * Calls Azure Speech Recognition API
+ */
+async function handleSpeechRecognition(data, apiKey, region) {
+  const { audioData, language } = data;
+
+  // Validate input
+  if (!audioData || !language) {
+    throw new Error('Missing required fields: audioData and language');
+  }
+
+  // Azure Speech Recognition API endpoint
+  const endpoint = `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${language}`;
+
+  // Convert base64 audio back to binary
+  const audioBuffer = Buffer.from(audioData, 'base64');
+
+  // Call Azure API
+  const response = await axios.post(
+    endpoint,
+    audioBuffer,
+    {
+      headers: {
+        'Ocp-Apim-Subscription-Key': apiKey,
+        'Content-Type': 'audio/wav',
+      },
+    }
+  );
+
+  return {
+    text: response.data.DisplayText,
+    confidence: response.data.Confidence,
+    language,
+  };
+}
+
+/**
+ * Helper: Get default voice for a language
+ */
+function getDefaultVoice(language) {
+  const voices = {
+    'ur-PK': 'ur-PK-UzmaNeural',
+    'fa-IR': 'fa-IR-DilaraNeural',
+    'ps-AF': 'ps-AF-LatifaNeural',
+    'ar-SA': 'ar-SA-ZariyahNeural',
+    'uz-UZ': 'uz-UZ-MadinaNeural',
+    'uk-UA': 'uk-UA-PolinaNeural',
+    'en-US': 'en-US-JennyNeural',
+    'es-US': 'es-US-PalomaNeural',
+  };
+  return voices[language] || `${language}-Standard-A`;
+}
+
+/**
+ * Helper: Escape XML special characters for SSML
+ */
+function escapeXml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}

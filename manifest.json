@@ -1,0 +1,116 @@
+{
+    "manifest_version": 3,
+    "name": "LanguageBridge - Real-Time Translation for Students",
+    "version": "1.0.6",
+    "version_name": "1.0.6-alpha",
+    "description": "Instant translation and text-to-speech for English learners in 9 languages.",
+    "homepage_url": "https://languagebridge.app/privacy",
+
+    "permissions": [
+      "storage",
+      "activeTab"
+    ],
+
+    "host_permissions": [
+      "https://eastus.api.cognitive.microsoft.com/*",
+      "https://api.cognitive.microsofttranslator.com/*",
+      "https://micro-tran.cognitiveservices.azure.com/*",
+      "https://eastus.tts.speech.microsoft.com/*"
+    ],
+    
+    "background": {
+      "service_worker": "background.js",
+      "type": "module"
+    },
+    
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": [
+          "utils/logger.js",
+          "config.js",
+          "content/utils/inflection-engine.js",
+          "content/utils/error-handler.js",
+          "content/core/lb-state-manager.js",
+          "content/azure-speech-sdk-bundle.js",
+          "content/academic-vocabulary-enhanced.js",
+          "content/tiered-vocabulary-simplifier.js",
+          "content/services/lb-azure-core.js",
+          "content/services/lb-translation-service.js",
+          "content/services/lb-tts-service.js",
+          "content/services/lb-stt-service.js",
+          "content/services/lb-simplification-service.js",
+          "content/services/lb-glossary-service.js",
+          "content/azure-client.js",
+          "content/session-audio-cache.js",
+          "content/activation-modal.js",
+          "content/google-docs-adapter.js",
+          "content/onboarding.js",
+          "content/highlighter.js",
+          "content/toolbar.js",
+          "content/floating-translator.js"
+        ],
+        "css": [
+          "content/brand-tokens.css",
+          "content/toolbar.css",
+          "content/floating-translator.css"
+        ],
+        "run_at": "document_idle"
+      }
+    ],
+    
+    "action": {
+      "default_popup": "popup/popup.html",
+      "default_icon": {
+        "16": "assets/icon16.png",
+        "32": "assets/icon32.png",
+        "48": "assets/icon48.png",
+        "128": "assets/icon128.png"
+      }
+    },
+
+    "icons": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png",
+      "512": "assets/icon512.png"
+    },
+    
+    "commands": {
+      "toggle-toolbar": {
+        "suggested_key": {
+          "default": "Alt+Shift+L",
+          "mac": "Alt+Shift+L"
+        },
+        "description": "Toggle LanguageBridge toolbar"
+      },
+      "toggle-floating-translator": {
+        "suggested_key": {
+          "default": "Alt+Shift+T",
+          "mac": "Alt+Shift+T"
+        },
+        "description": "Toggle floating conversation translator"
+      }
+    },
+    
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "assets/*",
+          "content/*.css",
+          "content/*.html",
+          "content/azure-speech-sdk-bundle.js",
+          "utils/logger.js",
+          "config.js",
+          "privacy-policy.html",
+          "plain_english_a_to_z-1.json"
+        ],
+        "matches": ["<all_urls>"]
+      }
+    ],
+    
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'none'; connect-src https://eastus.api.cognitive.microsoft.com https://api.cognitive.microsofttranslator.com https://micro-tran.cognitiveservices.azure.com https://eastus.tts.speech.microsoft.com"
+    }
+  }
