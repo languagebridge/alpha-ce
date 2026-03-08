@@ -315,12 +315,17 @@ async function getAllUsageLogs(limit = 100) {
   try {
     const { blobs } = await usageStore.list({ limit });
 
-    const logs = await Promise.all(
+    const results = await Promise.all(
       blobs.map(async (blob) => {
-        const data = await usageStore.get(blob.key);
-        return JSON.parse(data);
+        try {
+          const data = await usageStore.get(blob.key);
+          return data ? JSON.parse(data) : null;
+        } catch (_e) {
+          return null;
+        }
       })
     );
+    const logs = results.filter(Boolean);
 
     // Sort by timestamp (newest first)
     return logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -341,8 +346,14 @@ async function getUserBreakdown() {
 
     await Promise.all(
       blobs.map(async (blob) => {
-        const data = await quotaStore.get(blob.key);
-        const quota = JSON.parse(data);
+        let quota;
+        try {
+          const data = await quotaStore.get(blob.key);
+          quota = data ? JSON.parse(data) : null;
+        } catch (_e) {
+          quota = null;
+        }
+        if (!quota) return;
         const userId = blob.key.split(':')[0];
 
         if (!userMap[userId]) {

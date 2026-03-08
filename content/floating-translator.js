@@ -263,11 +263,12 @@ class FloatingTranslator {
         this.toggleSettings();
       });
 
-      // Dragging functionality
+      // Dragging functionality — listeners added on mousedown, removed on mouseup
+      // to avoid firing on every mouse event across the entire page
       const dragHandle = this.container.querySelector('.lb-float-drag-handle');
+      this._boundDrag = this.drag.bind(this);
+      this._boundStopDragging = this.stopDragging.bind(this);
       dragHandle.addEventListener('mousedown', this.startDragging.bind(this));
-      document.addEventListener('mousemove', this.drag.bind(this));
-      document.addEventListener('mouseup', this.stopDragging.bind(this));
 
       // Close button
       this.container.querySelector('.lb-float-close').addEventListener('click', () => {
@@ -507,6 +508,8 @@ class FloatingTranslator {
       this.dragOffset.x = e.clientX - this.position.x;
       this.dragOffset.y = e.clientY - this.position.y;
       this.container.style.cursor = 'grabbing';
+      document.addEventListener('mousemove', this._boundDrag);
+      document.addEventListener('mouseup', this._boundStopDragging);
     }
   
     drag(e) {
@@ -526,6 +529,8 @@ class FloatingTranslator {
       if (this.isDragging) {
         this.isDragging = false;
         this.container.style.cursor = 'default';
+        document.removeEventListener('mousemove', this._boundDrag);
+        document.removeEventListener('mouseup', this._boundStopDragging);
         this.savePosition();
       }
     }
