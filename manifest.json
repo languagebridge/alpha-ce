@@ -33,7 +33,6 @@
           "content/utils/error-handler.js",
           "content/core/lb-state-manager.js",
           "content/azure-speech-sdk-bundle.js",
-          "content/academic-vocabulary-enhanced.js",
           "content/services/lb-azure-core.js",
           "content/services/lb-translation-service.js",
           "content/services/lb-tts-service.js",

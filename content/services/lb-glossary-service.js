@@ -7,63 +7,7 @@ class LanguageBridgeGlossaryService {
     this.core = window.LanguageBridgeAzureCore;
     this.translationService = window.LanguageBridgeTranslationService;
   }
-  async extractAcademicTerms(text, targetLanguage, userTier = 2) {
-    if (!text || !window.AcademicVocabulary) {
-      return [];
-    }
-
-    // Find all academic terms in the text using the database
-    const foundTerms = window.AcademicVocabulary.findTerms(text, targetLanguage, userTier);
-
-    if (!foundTerms || foundTerms.length === 0) {
-      return [];
-    }
-
-    logger.log(`📚 Found ${foundTerms.length} academic terms for glossary`);
-
-    const isEnglishMode = targetLanguage === 'en';
-
-    const glossaryTerms = await Promise.all(foundTerms.map(async term => {
-      let translatedDefinition = term.definition;
-      if (!isEnglishMode && term.definition) {
-        try {
-          // Normalize definition text for consistent caching
-          const normalizedDefinition = term.definition.trim().replace(/\s+/g, ' ');
-          const cacheKey = `def-en-${targetLanguage}-${normalizedDefinition}`;
-
-          if (this.core.translationCache.has(cacheKey)) {
-            translatedDefinition = this.core.translationCache.get(cacheKey);
-            logger.log(`   ✓ Definition for "${term.term}" retrieved from cache`);
-          } else {
-            // Translate definition to target language
-            translatedDefinition = await this.translationService.translateText(normalizedDefinition, 'en', targetLanguage);
-            this.core.translationCache.set(cacheKey, translatedDefinition);
-            logger.log(`   ✓ Definition for "${term.term}" translated to ${targetLanguage}`);
-          }
-        } catch (error) {
-          logger.warn(`   ⚠️ Failed to translate definition for "${term.term}":`, error);
-          translatedDefinition = term.definition;
-        }
-      }
-
-      return {
-        term: term.term,
-        translation: isEnglishMode
-          ? term.definition
-          : (term.cognate || translatedDefinition),
-        cognate: term.cognate,
-        context: text.substring(0, 100) + '...',
-        source: 'academic_database',
-        tier: term.tier || 2,
-        subject: term.subject || 'General',
-        contextSentence: term.contextSentence || null
-      };
-    }));
-
-    return glossaryTerms;
-  }
-
-    // extractKeywords
+  // extractKeywords
   async extractKeywords(simplifiedText, targetLanguage) {
     logger.log('📚 Extracting dynamic keywords (non-academic words only)...');
 
@@ -114,11 +58,6 @@ class LanguageBridgeGlossaryService {
       }
 
       try {
-        const dbTerm = window.AcademicVocabulary?.findTerm(englishWord, targetLanguage);
-        if (dbTerm) {
-          logger.log(`   ⊘ "${englishWord}" → academic term, skipping (handled separately)`);
-          continue;
-        }
         if (isEnglishMode) {
           const simplification = this.getSimplification(englishWord);
           if (simplification) {
@@ -199,28 +138,8 @@ class LanguageBridgeGlossaryService {
       return await this.buildTier3Glossary(originalText, targetLanguage);
     }
 
-    // TIER 2: Academic terms + dynamic keywords (existing logic)
-    const academicTerms = await this.extractAcademicTerms(originalText, targetLanguage, tier);
-    const dynamicKeywords = await this.extractKeywords(simplifiedText, targetLanguage);
-
-    // Merge and deduplicate (academic terms first!)
-    const mergedGlossary = [...academicTerms, ...dynamicKeywords];
-    const seenTerms = new Set();
-    const deduplicatedGlossary = mergedGlossary.filter(item => {
-      const termLower = item.term.toLowerCase();
-      if (seenTerms.has(termLower)) {
-        return false;
-      }
-      seenTerms.add(termLower);
-      return true;
-    });
-
-    // Limit to top 8 most important terms
-    const glossary = deduplicatedGlossary.slice(0, 8);
-
-    logger.log(`✓ TIER ${tier} Glossary: ${academicTerms.length} academic + ${dynamicKeywords.length} dynamic → ${glossary.length} final`);
-
-    return glossary;
+    // TIER 2: Dynamic keywords from text
+    return await this.extractKeywords(simplifiedText, targetLanguage);
   }
   async buildTier1Glossary(simplifiedText, targetLanguage) {
     try {
