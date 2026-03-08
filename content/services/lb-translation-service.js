@@ -93,13 +93,6 @@ class LanguageBridgeTranslationService {
         responseTime: Date.now() - startTime
       });
 
-      // Track analytics (async, non-blocking)
-      if (window.LanguageBridgeAnalytics) {
-        window.LanguageBridgeAnalytics.trackTranslation(fromLang, toLang, text.length).catch(err => {
-          // Silently fail - analytics should never break functionality
-          console.warn('Analytics tracking failed:', err.message);
-        });
-      }
 
       logger.log(`✓ Translation complete (via Netlify proxy)`);
       return translatedText;

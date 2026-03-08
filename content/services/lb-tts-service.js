@@ -92,12 +92,6 @@ class LanguageBridgeTTSService {
         responseTime: Date.now() - startTime
       });
 
-      // Track analytics (async, non-blocking)
-      if (window.LanguageBridgeAnalytics) {
-        window.LanguageBridgeAnalytics.trackTTS(language, text.length).catch(err => {
-          console.warn('Analytics tracking failed:', err.message);
-        });
-      }
 
     } catch (error) {
       clearTimeout(fetchTimeout);
@@ -148,7 +142,7 @@ class LanguageBridgeTTSService {
         resolve();
       };
 
-      audio.onerror = (error) => {
+      audio.onerror = (_error) => {
         URL.revokeObjectURL(audioUrl);
         this.currentAudioUrl = null;
         this.currentAudio = null;

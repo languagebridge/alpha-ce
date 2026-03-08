@@ -21,10 +21,7 @@ class PrivacyConsent {
       analyticsEnabled: accepted // Automatically set analytics based on consent
     });
 
-    // If user declined, disable analytics
-    if (!accepted && window.LanguageBridgeAnalytics) {
-      window.LanguageBridgeAnalytics.cloudSyncEnabled = false;
-    }
+
   }
 
     // show - Refactored to use DOM methods (XSS-safe)

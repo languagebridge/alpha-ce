@@ -7,36 +7,6 @@ class ActivationModal {
   constructor() {
     this.modal = null;
     this.isShowing = false;
-    this.API_ENDPOINT = 'https://languagebridge-api.azurewebsites.net/api';
-  }
-  async checkAndShow() {
-    const { subscriptionKey } = await chrome.storage.sync.get(['subscriptionKey']);
-
-    if (!subscriptionKey) {
-      logger.log('📢 No subscription key found - showing activation modal');
-      this.show();
-      return true;
-    }
-    try {
-      const response = await fetch(`${this.API_ENDPOINT}/validate-key`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': subscriptionKey
-        }
-      });
-
-      if (!response.ok || !(await response.json()).valid) {
-        logger.log('📢 Subscription key invalid/expired - showing activation modal');
-        this.show();
-        return true;
-      }
-    } catch (error) {
-      logger.error('Error validating subscription:', error);
-      // Don't show modal on network errors
-    }
-
-    return false;
   }
   show() {
     if (this.isShowing) return;
@@ -184,53 +154,6 @@ class ActivationModal {
     const overlay = this.modal.querySelector('.lb-activation-overlay');
     if (overlay) {
       overlay.addEventListener('click', () => this.hide());
-    }
-  }
-  async getDemoKey() {
-    const loading = this.modal.querySelector('#lb-activation-loading');
-    const demoBtn = this.modal.querySelector('#lb-get-demo-btn');
-
-    try {
-      demoBtn.disabled = true;
-      demoBtn.textContent = 'Generating...';
-      loading.style.display = 'flex';
-
-      const response = await fetch(`${this.API_ENDPOINT}/demo-key`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate demo key');
-      }
-
-      const data = await response.json();
-
-      // Save the demo key
-      await chrome.storage.sync.set({ subscriptionKey: data.key });
-
-      // Show success message
-      this.showSuccess(`
-        <h3>🎉 Free Trial Activated!</h3>
-        <p>You have <strong>100 translations</strong> for the next <strong>7 days</strong></p>
-        <p>Start translating any text on any webpage!</p>
-      `);
-
-      // Close modal after 3 seconds
-      setTimeout(() => {
-        this.hide();
-        // Reload the page to activate the extension
-        window.location.reload();
-      }, 3000);
-
-    } catch (error) {
-      logger.error('Error getting demo key:', error);
-      this.showError('Failed to activate trial. Please try again or contact support.');
-      demoBtn.disabled = false;
-      demoBtn.textContent = 'Get Free Trial';
-      loading.style.display = 'none';
     }
   }
   async checkSchoolEmail() {

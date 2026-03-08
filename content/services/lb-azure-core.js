@@ -48,9 +48,8 @@ class LanguageBridgeAzureCore {
         }
       }
     } catch (error) {
-      logger.error('❌ Failed to load config for Azure Core:', error);
-      // Set fallback endpoint
-      this.config.netlifyEndpoint = 'https://exquisite-croissant-4288dd.netlify.app/.netlify/functions/azure-proxy';
+      logger.error('❌ Failed to load config for Azure Core — translation unavailable:', error);
+      // netlifyEndpoint remains null; API calls will fail with a clear error
     }
 
     this.isInitialized = true;
