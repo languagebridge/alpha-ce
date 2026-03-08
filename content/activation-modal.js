@@ -230,8 +230,7 @@ class ActivationModal {
     const content = this.modal.querySelector('.lb-activation-content');
     const existing = content.querySelector('.lb-activation-options');
     if (existing) {
-      // WARNING: This method includes user input (email domain) which is a potential XSS risk
-      // The email domain from line 258 needs to be escaped
+      // emailDomain is HTML-escaped via escapeHtml() before being passed here — safe
       existing.innerHTML = `
         <div class="lb-activation-message lb-message-info">
           ${html}

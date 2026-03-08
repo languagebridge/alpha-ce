@@ -284,8 +284,11 @@ async function handleTranslation(data, apiKey, region) {
     throw new Error('Missing required fields: text and targetLanguage');
   }
 
-  const endpoint = `https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=${targetLanguage}`;
-  const url = sourceLanguage ? `${endpoint}&from=${sourceLanguage}` : endpoint;
+  validateLanguageCode(targetLanguage);
+  if (sourceLanguage) validateLanguageCode(sourceLanguage);
+
+  const endpoint = `https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=${encodeURIComponent(targetLanguage)}`;
+  const url = sourceLanguage ? `${endpoint}&from=${encodeURIComponent(sourceLanguage)}` : endpoint;
 
   const response = await axios.post(
     url,
@@ -320,8 +323,11 @@ async function handleSpeechSynthesis(data, apiKey, region) {
     throw new Error('Missing required fields: text and language');
   }
 
+  validateLanguageCode(language);
   const resolvedVoice = voice || getDefaultVoice(language);
-  const resolvedRate = rate || '1.0';
+  const resolvedRate = String(rate || '1.0');
+  validateVoiceName(resolvedVoice);
+  validateRate(resolvedRate);
 
   // Check audio cache before calling Azure
   const cachedAudio = await getCachedAudio(text, language, resolvedVoice, resolvedRate);
@@ -378,6 +384,8 @@ async function handleSpeechRecognition(data, apiKey, region) {
     throw new Error('Missing required fields: audioData and language');
   }
 
+  validateLanguageCode(language);
+
   // Map browser mimeTypes to Azure-compatible Content-Types
   const contentTypeMap = {
     'audio/webm': 'audio/webm; codecs=opus',
@@ -391,7 +399,7 @@ async function handleSpeechRecognition(data, apiKey, region) {
   // Default to webm if not specified (Chrome default)
   const contentType = contentTypeMap[mimeType] || 'audio/webm; codecs=opus';
 
-  const endpoint = `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${language}`;
+  const endpoint = `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${encodeURIComponent(language)}`;
   const audioBuffer = Buffer.from(audioData, 'base64');
 
   if (config.ENABLE_DEBUG_LOGGING) {
@@ -445,6 +453,31 @@ async function handleSpeechRecognition(data, apiKey, region) {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+// Azure language codes: 'en', 'ur', 'zh-Hans', 'en-US', 'ur-PK', etc.
+const LANGUAGE_CODE_RE = /^[a-zA-Z]{2,4}(-[a-zA-Z0-9]{2,9})*$/;
+// Azure Neural voice names: 'en-US-JennyNeural', 'ur-PK-UzmaNeural', etc.
+const VOICE_NAME_RE = /^[a-zA-Z]{2,4}-[a-zA-Z]{2,4}-[a-zA-Z0-9]+$/;
+// Prosody rate: decimal (0.6, 1.0, 1.5) or SSML keyword
+const RATE_RE = /^[0-9]+(\.[0-9]+)?$|^(x-slow|slow|medium|fast|x-fast|default)$/;
+
+function validateLanguageCode(lang) {
+  if (!lang || !LANGUAGE_CODE_RE.test(lang)) {
+    throw new Error(`Invalid language code: ${lang}`);
+  }
+}
+
+function validateVoiceName(voice) {
+  if (!VOICE_NAME_RE.test(voice)) {
+    throw new Error(`Invalid voice name: ${voice}`);
+  }
+}
+
+function validateRate(rate) {
+  if (!RATE_RE.test(String(rate))) {
+    throw new Error(`Invalid rate value: ${rate}`);
+  }
+}
 
 function getDefaultVoice(language) {
   const voices = {
