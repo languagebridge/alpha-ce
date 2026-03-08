@@ -1,22 +1,73 @@
 /**
  * Storage Wrapper for Netlify Blobs
- * Handles user quotas, usage logging, and pilot statistics
+ * Handles user quotas, usage logging, pilot statistics, and TTS audio cache
  */
 
 const { getStore } = require('@netlify/blobs');
+const crypto = require('crypto');
 const config = require('./config');
 
 // Initialize blob stores with context
 // Netlify automatically provides these in production
-let usageStore, quotaStore, statsStore;
+let usageStore, quotaStore, statsStore, audioStore;
 
 try {
   usageStore = getStore('usage-logs');
   quotaStore = getStore('user-quotas');
   statsStore = getStore('pilot-stats');
+  audioStore = getStore('tts-audio-cache');
 } catch (error) {
   console.warn('Netlify Blobs not configured:', error.message);
   // Stores will be undefined, handled gracefully below
+}
+
+// TTS audio cache TTL: 30 days (audio doesn't change)
+const AUDIO_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
+
+/**
+ * Generate a cache key for TTS audio
+ */
+function getAudioCacheKey(text, language, voice, rate) {
+  const hash = crypto.createHash('sha256')
+    .update(`${text}:${language}:${voice}:${rate}`)
+    .digest('hex')
+    .substring(0, 16);
+  return `${language}:${hash}`;
+}
+
+/**
+ * Get cached TTS audio if available
+ */
+async function getCachedAudio(text, language, voice, rate) {
+  if (!audioStore) return null;
+  try {
+    const key = getAudioCacheKey(text, language, voice, rate);
+    const data = await audioStore.get(key);
+    if (data) {
+      console.log(`🎵 Audio cache HIT: ${language}:${text.substring(0, 20)}...`);
+    }
+    return data || null;
+  } catch (error) {
+    console.warn('Audio cache get error:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Store TTS audio in cache
+ */
+async function setCachedAudio(text, language, voice, rate, audioBase64) {
+  if (!audioStore) return;
+  try {
+    const key = getAudioCacheKey(text, language, voice, rate);
+    await audioStore.set(key, audioBase64, {
+      metadata: { ttl: AUDIO_CACHE_TTL_SECONDS },
+    });
+    console.log(`💾 Audio cached: ${language}:${text.substring(0, 20)}...`);
+  } catch (error) {
+    console.warn('Audio cache set error:', error.message);
+    // Don't throw — caching failure shouldn't break TTS
+  }
 }
 
 /**
@@ -328,4 +379,6 @@ module.exports = {
   updatePilotStats,
   getAllUsageLogs,
   getUserBreakdown,
+  getCachedAudio,
+  setCachedAudio,
 };

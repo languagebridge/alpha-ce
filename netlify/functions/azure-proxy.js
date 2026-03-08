@@ -17,7 +17,7 @@
 
 const axios = require('axios');
 const config = require('./lib/config');
-const { getUserId, getUserDailyUsage, logUsage } = require('./lib/storage');
+const { getUserId, getUserDailyUsage, logUsage, getCachedAudio, setCachedAudio } = require('./lib/storage');
 const { checkRateLimit } = require('./lib/rate-limiter');
 const { checkDailyQuota, checkPilotBudget, estimateCost } = require('./lib/quota-checker');
 
@@ -320,10 +320,19 @@ async function handleSpeechSynthesis(data, apiKey, region) {
     throw new Error('Missing required fields: text and language');
   }
 
+  const resolvedVoice = voice || getDefaultVoice(language);
+  const resolvedRate = rate || '1.0';
+
+  // Check audio cache before calling Azure
+  const cachedAudio = await getCachedAudio(text, language, resolvedVoice, resolvedRate);
+  if (cachedAudio) {
+    return { audio: cachedAudio, format: 'mp3', cached: true };
+  }
+
   const ssml = `
     <speak version='1.0' xml:lang='${language}'>
-      <voice xml:lang='${language}' name='${voice || getDefaultVoice(language)}'>
-        <prosody rate='${rate || '1.0'}'>
+      <voice xml:lang='${language}' name='${resolvedVoice}'>
+        <prosody rate='${resolvedRate}'>
           ${escapeXml(text)}
         </prosody>
       </voice>
@@ -348,9 +357,13 @@ async function handleSpeechSynthesis(data, apiKey, region) {
 
   const audioBase64 = Buffer.from(response.data).toString('base64');
 
+  // Store in cache for future requests (fire and forget)
+  setCachedAudio(text, language, resolvedVoice, resolvedRate, audioBase64);
+
   return {
     audio: audioBase64,
     format: 'mp3',
+    cached: false,
   };
 }
 
